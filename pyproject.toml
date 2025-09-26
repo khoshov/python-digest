@@ -1,0 +1,13 @@
+[project]
+name = "python-digest"
+version = "0.1.0"
+description = "SMM Agents Pipeline - Automated news processing and social media content generation"
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.0",
+    "requests>=2.31.0",
+    "feedparser>=6.0.10",
+    "newspaper3k>=0.2.8",
+    "lxml[html-clean]>=5.4.0",
+    "python-dotenv>=1.0.0",
+]
