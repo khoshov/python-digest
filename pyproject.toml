@@ -10,4 +10,5 @@ dependencies = [
     "newspaper3k>=0.2.8",
     "lxml[html-clean]>=5.4.0",
     "python-dotenv>=1.0.0",
+    "django>=5.2.7",
 ]
