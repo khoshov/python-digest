@@ -1,7 +1,3 @@
-"""
-Модели для приложения digest.
-"""
-
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -97,7 +93,7 @@ class NewsSource(models.Model):
     """
     Модель для хранения источников новостей.
     """
-    
+
     SOURCE_TYPE_CHOICES = [
         ('rss', 'RSS лента'),
         ('google', 'Google Search'),
