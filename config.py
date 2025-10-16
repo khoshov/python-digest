@@ -9,7 +9,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Загружаем переменные окружения из .env файла
-env_path = Path(__file__).parent / '.env'
+env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
 
 
@@ -25,7 +25,9 @@ class Settings:
     # Google API настройки
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
     google_cse_id: str = os.getenv("GOOGLE_CSE_ID", "")
-    enable_google_news: bool = os.getenv("ENABLE_GOOGLE_NEWS", "false").lower() == "true"
+    enable_google_news: bool = (
+        os.getenv("ENABLE_GOOGLE_NEWS", "false").lower() == "true"
+    )
 
     # RSS настройки
     enable_rss_news: bool = os.getenv("ENABLE_RSS_NEWS", "true").lower() == "true"
@@ -45,15 +47,21 @@ class Settings:
     # Получатели email (разделенные запятыми)
     email_recipients: List[str] = None
     email_from: str = os.getenv("EMAIL_FROM", "")
-    email_subject: str = os.getenv("EMAIL_SUBJECT", "Python Digest - Еженедельный дайджест")
-    enable_email_sending: bool = os.getenv("ENABLE_EMAIL_SENDING", "false").lower() == "true"
+    email_subject: str = os.getenv(
+        "EMAIL_SUBJECT", "Python Digest - Еженедельный дайджест"
+    )
+    enable_email_sending: bool = (
+        os.getenv("ENABLE_EMAIL_SENDING", "false").lower() == "true"
+    )
 
     def __post_init__(self):
         """Дополнительная обработка после инициализации."""
         # Обработка списка получателей email
         recipients_str = os.getenv("EMAIL_RECIPIENTS", "")
         if recipients_str:
-            self.email_recipients = [email.strip() for email in recipients_str.split(",") if email.strip()]
+            self.email_recipients = [
+                email.strip() for email in recipients_str.split(",") if email.strip()
+            ]
         else:
             self.email_recipients = []
 

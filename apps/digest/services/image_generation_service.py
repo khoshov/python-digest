@@ -18,7 +18,7 @@ class ImageGenerationService:
     def __init__(self, api_key: str, **kwargs):
         """
         Инициализация генератора изображений.
-        
+
         Args:
             api_key: OpenAI API key
             **kwargs: Дополнительные параметры для генерации
@@ -31,11 +31,11 @@ class ImageGenerationService:
     def generate_image(self, prompt: str, **kwargs) -> Optional[str]:
         """
         Генерация изображения через OpenAI DALL-E API.
-        
+
         Args:
             prompt: Текстовое описание изображения
             **kwargs: Дополнительные параметры (size, quality, style)
-            
+
         Returns:
             str: Путь к сохраненному изображению или None при ошибке
         """
@@ -52,12 +52,12 @@ class ImageGenerationService:
             "quality": kwargs.get("quality", "standard"),
             "style": kwargs.get("style", "natural"),
             "n": 1,
-            "response_format": "b64_json"
+            "response_format": "b64_json",
         }
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         try:
@@ -89,12 +89,12 @@ class ImageGenerationService:
 def generate_image_for_post(image_idea: str, api_key: str, **kwargs) -> Optional[str]:
     """
     Упрощенная функция для генерации изображения к посту.
-    
+
     Args:
         image_idea: Описание изображения от копирайтера
         api_key: OpenAI API key
         **kwargs: Дополнительные параметры для генерации
-        
+
     Returns:
         str: Путь к изображению или None при ошибке
     """
