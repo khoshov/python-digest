@@ -1,0 +1,505 @@
+[
+  {
+    "model": "digest.project",
+    "pk": 1,
+    "fields": {
+      "name": "Python Digest Weekly",
+      "is_active": true,
+      "rss_hours_period": 168,
+      "max_articles_per_source": 20,
+      "max_final_posts": 8,
+      "enable_google_news": true,
+      "enable_rss_news": true,
+      "generate_images": false,
+      "enable_email_sending": false,
+      "created_at": "2025-01-26T12:00:00Z",
+      "updated_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 1,
+    "fields": {
+      "project": 1,
+      "name": "Habr - Python",
+      "url": "https://habr.com/ru/rss/hub/python/all/",
+      "is_active": true,
+      "priority": 1,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 2,
+    "fields": {
+      "project": 1,
+      "name": "Real Python",
+      "url": "https://realpython.com/atom.xml",
+      "is_active": true,
+      "priority": 1,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 3,
+    "fields": {
+      "project": 1,
+      "name": "Python.org Official Blog",
+      "url": "https://www.python.org/feeds/python.rss/",
+      "is_active": true,
+      "priority": 1,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 4,
+    "fields": {
+      "project": 1,
+      "name": "Planet Python",
+      "url": "https://planetpython.org/rss20.xml",
+      "is_active": true,
+      "priority": 2,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 5,
+    "fields": {
+      "project": 1,
+      "name": "Python Software Foundation Blog",
+      "url": "https://pyfound.blogspot.com/feeds/posts/default",
+      "is_active": true,
+      "priority": 2,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 6,
+    "fields": {
+      "project": 1,
+      "name": "Python Library - Blog",
+      "url": "https://www.blog.pythonlibrary.org/feed/",
+      "is_active": true,
+      "priority": 2,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 7,
+    "fields": {
+      "project": 1,
+      "name": "GitHub Blog - Python",
+      "url": "https://github.blog/tag/python/feed/",
+      "is_active": true,
+      "priority": 3,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 8,
+    "fields": {
+      "project": 1,
+      "name": "Hynek Schlawack's Blog",
+      "url": "https://hynek.me/articles/feed/",
+      "is_active": true,
+      "priority": 3,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 9,
+    "fields": {
+      "project": 1,
+      "name": "Tproger - Python",
+      "url": "https://tproger.ru/tag/python/feed/",
+      "is_active": true,
+      "priority": 2,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 10,
+    "fields": {
+      "project": 1,
+      "name": "Python Weekly",
+      "url": "https://us2.campaign-archive.com/feed?u=e2e180baf855ac797ef407fc7&id=9e26887fc5",
+      "is_active": true,
+      "priority": 1,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 11,
+    "fields": {
+      "project": 1,
+      "name": "Full Stack Python",
+      "url": "https://www.fullstackpython.com/feed",
+      "is_active": true,
+      "priority": 3,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.articlesource",
+    "pk": 12,
+    "fields": {
+      "project": 1,
+      "name": "PyPI Blog",
+      "url": "https://blog.pypi.org/index.xml",
+      "is_active": true,
+      "priority": 2,
+      "articles_count": 0,
+      "success_rate": 0.0
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 1,
+    "fields": {
+      "project": 1,
+      "keyword": "Python",
+      "is_active": true,
+      "priority": 1,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 2,
+    "fields": {
+      "project": 1,
+      "keyword": "Django",
+      "is_active": true,
+      "priority": 1,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 3,
+    "fields": {
+      "project": 1,
+      "keyword": "FastAPI",
+      "is_active": true,
+      "priority": 1,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 4,
+    "fields": {
+      "project": 1,
+      "keyword": "Flask",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 5,
+    "fields": {
+      "project": 1,
+      "keyword": "Python 3.13",
+      "is_active": true,
+      "priority": 1,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 6,
+    "fields": {
+      "project": 1,
+      "keyword": "asyncio",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 7,
+    "fields": {
+      "project": 1,
+      "keyword": "Pandas",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 8,
+    "fields": {
+      "project": 1,
+      "keyword": "NumPy",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 9,
+    "fields": {
+      "project": 1,
+      "keyword": "Machine Learning Python",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 10,
+    "fields": {
+      "project": 1,
+      "keyword": "Data Science Python",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 11,
+    "fields": {
+      "project": 1,
+      "keyword": "SQLAlchemy",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 12,
+    "fields": {
+      "project": 1,
+      "keyword": "Pytest",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 13,
+    "fields": {
+      "project": 1,
+      "keyword": "Poetry Python",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 14,
+    "fields": {
+      "project": 1,
+      "keyword": "Pydantic",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 15,
+    "fields": {
+      "project": 1,
+      "keyword": "Python async",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 16,
+    "fields": {
+      "project": 1,
+      "keyword": "Python performance",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 17,
+    "fields": {
+      "project": 1,
+      "keyword": "Python best practices",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 18,
+    "fields": {
+      "project": 1,
+      "keyword": "Python typing",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 19,
+    "fields": {
+      "project": 1,
+      "keyword": "Python web scraping",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 20,
+    "fields": {
+      "project": 1,
+      "keyword": "Celery Python",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 21,
+    "fields": {
+      "project": 1,
+      "keyword": "Python Docker",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 22,
+    "fields": {
+      "project": 1,
+      "keyword": "Python microservices",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 23,
+    "fields": {
+      "project": 1,
+      "keyword": "Python REST API",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 24,
+    "fields": {
+      "project": 1,
+      "keyword": "Python GraphQL",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 25,
+    "fields": {
+      "project": 1,
+      "keyword": "Python meme",
+      "is_active": true,
+      "priority": 4,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 26,
+    "fields": {
+      "project": 1,
+      "keyword": "Python tutorial",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 27,
+    "fields": {
+      "project": 1,
+      "keyword": "Python course",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 28,
+    "fields": {
+      "project": 1,
+      "keyword": "Python developer career",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 29,
+    "fields": {
+      "project": 1,
+      "keyword": "Python security",
+      "is_active": true,
+      "priority": 3,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  },
+  {
+    "model": "digest.keyword",
+    "pk": 30,
+    "fields": {
+      "project": 1,
+      "keyword": "Python ORM",
+      "is_active": true,
+      "priority": 2,
+      "created_at": "2025-01-26T12:00:00Z"
+    }
+  }
+]

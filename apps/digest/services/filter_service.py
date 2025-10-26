@@ -16,7 +16,7 @@ logger = setup_logger(module_name=__name__)
 class FilterResponse(BaseModel):
     is_relevant: bool = Field(description="Релевантна ли статья для Python Digest")
     relevance_reason: str = Field(description="Причина релевантности или нерелевантности")
-    interest_score: int = Field(description="Оценка интереса от 0 до 10", ge=0, le=10)
+    interest_score: float = Field(description="Оценка интереса от 0 до 10", ge=0, le=10)
     interest_reason: str = Field(description="Почему такая оценка интереса")
     content_type: str = Field(description="Тип контента: tutorial/news/library/event/opinion/meme/other")
     summary: str = Field(description="Краткое описание на русском (до 350 символов)", max_length=350)
@@ -137,8 +137,12 @@ class FilterService:
                 if relevance_check["summary"]:
                     article_with_meta["summary"] = relevance_check["summary"]
 
+                # Добавляем все данные фильтрации
                 article_with_meta["content_type"] = relevance_check["content_type"]
                 article_with_meta["interest_score"] = relevance_check["interest_score"]
+                article_with_meta["is_relevant"] = True
+                article_with_meta["relevance_reason"] = relevance_check["relevance_reason"]
+                article_with_meta["interest_reason"] = relevance_check["interest_reason"]
 
                 filtered_articles.append(article_with_meta)
                 logger.debug(
@@ -195,8 +199,12 @@ class FilterService:
             if relevance_check["summary"]:
                 article_with_meta["summary_filtered"] = relevance_check["summary"]
 
+            # Добавляем все данные фильтрации для сохранения в БД
             article_with_meta["content_type"] = relevance_check["content_type"]
             article_with_meta["interest_score"] = relevance_check["interest_score"]
+            article_with_meta["is_relevant"] = relevance_check["is_relevant"]
+            article_with_meta["relevance_reason"] = relevance_check["relevance_reason"]
+            article_with_meta["interest_reason"] = relevance_check["interest_reason"]
 
             articles_with_results.append(article_with_meta)
 

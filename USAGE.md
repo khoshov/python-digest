@@ -62,9 +62,16 @@ python manage.py createsuperuser
    - **Активен** - отметьте галочку
 
 Примеры RSS лент для Python:
-- https://www.python.org/feeds/python.rss/
-- https://realpython.com/atom.xml
-- https://pyfound.blogspot.com/feeds/posts/default
+- https://www.python.org/feeds/python.rss/ - официальный блог Python
+- https://realpython.com/atom.xml - Real Python
+- https://pyfound.blogspot.com/feeds/posts/default - Python Software Foundation
+- https://habr.com/ru/rss/all/ - Хабр (все статьи)
+- https://planetpython.org/rss20.xml - Planet Python
+
+**⚠️ Важно**:
+- URL должен указывать на RSS/Atom фид, а не на обычную веб-страницу
+- Неправильно: `https://habr.com` (это главная страница)
+- Правильно: `https://habr.com/ru/rss/all/` (это RSS лента)
 
 **Примечание**: RSS источники используются для сбора статей из RSS лент. Каждый проект может иметь свой набор источников.
 

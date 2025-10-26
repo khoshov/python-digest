@@ -137,7 +137,13 @@ class ArticleSource(models.Model):
         max_length=500,
         blank=True,
         null=True,
-        help_text="Полный URL RSS фида (например, https://www.python.org/feeds/python.rss/)",
+        help_text=(
+            "Полный URL RSS/Atom фида (не обычная веб-страница!).\n"
+            "Примеры:\n"
+            "• https://www.python.org/feeds/python.rss/\n"
+            "• https://habr.com/ru/rss/all/\n"
+            "• https://realpython.com/atom.xml"
+        ),
     )
     is_active = models.BooleanField(
         "Активен",

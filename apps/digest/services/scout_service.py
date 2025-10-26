@@ -154,12 +154,24 @@ class ScoutService:
             )
 
             if feed.bozo:
+                error_msg = str(feed.bozo_exception)
                 logger.warning(
-                    f"RSS лента может содержать ошибки: {feed_url}, ошибка: {feed.bozo_exception}"
+                    f"⚠️ RSS лента содержит ошибки: {feed_url}"
                 )
+                logger.warning(f"   Ошибка: {error_msg}")
+
                 # Если есть записи, несмотря на ошибку, продолжаем
                 if not feed.entries:
-                    logger.warning(f"RSS лента {feed_url} пуста, пропускаем")
+                    if "not well-formed" in error_msg or "invalid token" in error_msg:
+                        logger.error(
+                            f"❌ URL '{feed_url}' не является корректной RSS лентой.\n"
+                            f"   Проверьте, что URL указывает на RSS/Atom фид, а не на обычную веб-страницу.\n"
+                            f"   Примеры правильных RSS URL:\n"
+                            f"   - https://habr.com/ru/rss/all/\n"
+                            f"   - https://www.python.org/feeds/python.rss/"
+                        )
+                    else:
+                        logger.warning(f"RSS лента {feed_url} пуста, пропускаем")
                     return []
 
             logger.debug(f"RSS {feed_url}: найдено {len(feed.entries)} записей всего")
