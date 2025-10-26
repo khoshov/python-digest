@@ -1,26 +1,24 @@
-"""
-Агент Image Generator - модуль для генерации изображений по текстовому описанию.
-
-Использует OpenAI DALL-E API для генерации изображений.
-"""
-
 import base64
 from pathlib import Path
 from typing import Optional
 
 import requests
-from loguru import logger
+
+from logger.logger import setup_logger
+
+logger = setup_logger(module_name=__name__)
 
 
-class ImageGenerator:
+class ImageGenerationService:
     """
+    Модуль для генерации изображений по текстовому описанию.
     Класс для генерации изображений через OpenAI DALL-E API.
     """
 
     def __init__(self, api_key: str, **kwargs):
         """
         Инициализация генератора изображений.
-        
+
         Args:
             api_key: OpenAI API key
             **kwargs: Дополнительные параметры для генерации
@@ -33,11 +31,11 @@ class ImageGenerator:
     def generate_image(self, prompt: str, **kwargs) -> Optional[str]:
         """
         Генерация изображения через OpenAI DALL-E API.
-        
+
         Args:
             prompt: Текстовое описание изображения
             **kwargs: Дополнительные параметры (size, quality, style)
-            
+
         Returns:
             str: Путь к сохраненному изображению или None при ошибке
         """
@@ -54,12 +52,12 @@ class ImageGenerator:
             "quality": kwargs.get("quality", "standard"),
             "style": kwargs.get("style", "natural"),
             "n": 1,
-            "response_format": "b64_json"
+            "response_format": "b64_json",
         }
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         try:
@@ -91,16 +89,16 @@ class ImageGenerator:
 def generate_image_for_post(image_idea: str, api_key: str, **kwargs) -> Optional[str]:
     """
     Упрощенная функция для генерации изображения к посту.
-    
+
     Args:
         image_idea: Описание изображения от копирайтера
         api_key: OpenAI API key
         **kwargs: Дополнительные параметры для генерации
-        
+
     Returns:
         str: Путь к изображению или None при ошибке
     """
     enhanced_prompt = f"Professional, high-quality illustration for social media post about AI and technology. {image_idea}. Modern style, clean design, suitable for Telegram post."
 
-    generator = ImageGenerator(api_key=api_key, **kwargs)
+    generator = ImageGenerationService(api_key=api_key, **kwargs)
     return generator.generate_image(enhanced_prompt, **kwargs)
