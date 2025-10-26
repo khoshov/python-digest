@@ -1,87 +1,90 @@
-import requests
 from typing import Dict
 
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel, Field
+
 from logger.logger import setup_logger
+from apps.digest import prompts
 
 logger = setup_logger(module_name=__name__)
 
 
+# Pydantic модель для структурированного ответа копирайтера
+class CopywriterResponse(BaseModel):
+    post: str = Field(description="Текст поста для Telegram с Markdown форматированием (до 500 символов)", max_length=500)
+    image_idea: str = Field(description="Идея для сопроводительного изображения на английском языке для DALL-E")
+
+
 class CopywriterService:
     def __init__(self):
-        pass
+        self.parser = JsonOutputParser(pydantic_object=CopywriterResponse)
 
-    def call_flowise_copywriter(
-        self, flow_id: str, article: Dict[str, str], flowise_host: str
+    def call_deepseek_copywriter(
+        self,
+        article: Dict[str, str],
+        deepseek_api_key: str,
+        system_prompt: str = None,
+        user_prompt: str = None
     ) -> Dict[str, str]:
         """
-        Вызывает Flowise API для создания Telegram-поста из новости.
+        Вызывает DeepSeek API для создания Telegram-поста из новости используя LangChain.
 
         Новый формат ответа содержит:
         - post: готовый текст для Telegram с Markdown
         - image_idea: идея для сопроводительного изображения
 
         Args:
-            flow_id: ID Flowise потока для копирайтинга
             article: Словарь с данными статьи (title, summary, url)
-            flowise_host: Хост Flowise API
+            deepseek_api_key: API ключ DeepSeek
+            system_prompt: Системный промпт (опционально)
+            user_prompt: Пользовательский промпт (опционально)
 
         Returns:
             Dict: {"post": "текст поста", "image_idea": "описание картинки"}
         """
-        url = f"{flowise_host}/api/v1/prediction/{flow_id}"
-
-        payload = {
-            "question": f"Заголовок: {article['title']}, Краткое содержание: {article['summary']}, Ссылка: {article['url']}",
-        }
-
         try:
-            response = requests.post(url, json=payload)
-            response.raise_for_status()
+            # Создаем LLM модель DeepSeek через OpenAI-совместимый API
+            llm = ChatOpenAI(
+                model="deepseek-chat",
+                api_key=deepseek_api_key,
+                base_url="https://api.deepseek.com/v1",
+                temperature=0.7,
+            )
 
-            result_text = response.json().get("text", "").strip()
+            # Используем промпты по умолчанию, если не переданы
+            if system_prompt is None:
+                system_prompt = prompts.COPYWRITER_SYSTEM_PROMPT
 
-            # Пытаемся парсить структурированный ответ
-            try:
-                # Ищем JSON в ответе
-                if "post:" in result_text and "image_idea:" in result_text:
-                    lines = result_text.split("\n")
-                    post_content = ""
-                    image_idea = ""
-                    current_section = None
+            if user_prompt is None:
+                user_prompt = prompts.COPYWRITER_USER_PROMPT
 
-                    for line in lines:
-                        line = line.strip()
-                        if line.startswith("post:"):
-                            current_section = "post"
-                            post_content = line.replace("post:", "").strip()
-                        elif line.startswith("image_idea:"):
-                            current_section = "image_idea"
-                            image_idea = line.replace("image_idea:", "").strip()
-                        elif current_section == "post" and line:
-                            post_content += "\n" + line
-                        elif current_section == "image_idea" and line:
-                            image_idea += " " + line
+            # Создаем prompt template
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("user", user_prompt)
+            ])
 
-                    return {
-                        "post": post_content.strip(),
-                        "image_idea": image_idea.strip(),
-                    }
+            # Создаем цепочку
+            chain = prompt | llm | self.parser
 
-                logger.warning(result_text)
-                # Если структуры нет, возвращаем весь текст как пост
-                logger.warning("Копирайтер вернул ответ не в ожидаемом формате")
-                return {
-                    "post": result_text,
-                    "image_idea": "Абстрактная иллюстрация на тему Python разработки",
-                }
+            # Вызываем цепочку
+            result = chain.invoke({
+                "title": article.get('title', ''),
+                "summary": article.get('summary', ''),
+                "url": article.get('url', ''),
+                "format_instructions": self.parser.get_format_instructions()
+            })
 
-            except Exception as e:
-                logger.error(f"Ошибка парсинга ответа копирайтера: {e}")
-                return {"post": result_text, "image_idea": "Изображение на тему Python"}
+            # Логируем результат для отладки
+            logger.debug(f"📝 Создан пост для '{article.get('title', '')[:50]}...' ({len(result.get('post', ''))} символов)")
+
+            return result
 
         except Exception as e:
-            logger.error(f"Ошибка при вызове Flowise copywriter: {e}")
+            logger.error(f"Ошибка при вызове DeepSeek copywriter: {e}")
             return {
-                "post": f"Ошибка создания поста для: {article['title']}",
-                "image_idea": "Ошибка",
+                "post": f"Ошибка создания поста для: {article.get('title', 'неизвестная статья')}",
+                "image_idea": "Error generating image idea",
             }

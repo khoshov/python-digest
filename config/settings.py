@@ -24,13 +24,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-# ========================
-# ENCRYPTION CONFIGURATION
-# ========================
-FIELD_ENCRYPTION_KEY = os.environ.get(
-    "FIELD_ENCRYPTION_KEY", "default-key-change-in-production"
-)
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,7 +33,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "encrypted_model_fields",
     "apps.digest",
 ]
 
@@ -71,7 +63,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "python_digest.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database

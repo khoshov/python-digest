@@ -1,95 +1,97 @@
-import requests
 from typing import List, Dict
+import json
+
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel, Field
 
 from logger.logger import setup_logger
+from apps.digest import prompts
 
 logger = setup_logger(module_name=__name__)
 
 
+# Pydantic модель для структурированного ответа фильтра
+class FilterResponse(BaseModel):
+    is_relevant: bool = Field(description="Релевантна ли статья для Python Digest")
+    relevance_reason: str = Field(description="Причина релевантности или нерелевантности")
+    interest_score: int = Field(description="Оценка интереса от 0 до 10", ge=0, le=10)
+    interest_reason: str = Field(description="Почему такая оценка интереса")
+    content_type: str = Field(description="Тип контента: tutorial/news/library/event/opinion/meme/other")
+    summary: str = Field(description="Краткое описание на русском (до 350 символов)", max_length=350)
+    title_ru: str = Field(description="Заголовок на русском (до 100 символов)", max_length=100)
+    url: str = Field(description="URL статьи")
+
+
 class FilterService:
     def __init__(self):
-        pass
+        self.parser = JsonOutputParser(pydantic_object=FilterResponse)
 
-    def check_relevance_with_flowise(
-        self, article: Dict[str, str], flow_id: str, flowise_host: str
+    def check_relevance_with_deepseek(
+        self,
+        article: Dict[str, str],
+        deepseek_api_key: str,
+        system_prompt: str = None,
+        user_prompt: str = None
     ) -> Dict[str, any]:
-        url = f"{flowise_host}/api/v1/prediction/{flow_id}"
+        """
+        Проверяет релевантность статьи через DeepSeek API используя LangChain.
 
-        filter_prompt = f"Заголовок: {article.get('title', '')} Краткое содержание: {article.get('summary', '')}"
+        Args:
+            article: Словарь с данными статьи (title, summary, url)
+            deepseek_api_key: API ключ DeepSeek
+            system_prompt: Системный промпт (опционально)
+            user_prompt: Пользовательский промпт (опционально)
 
-        payload = {"question": filter_prompt}
-
+        Returns:
+            Dict: Результаты фильтрации
+        """
         try:
-            response = requests.post(url, json=payload)
-            response.raise_for_status()
-
-            result_text = response.json().get("text", "").strip()
-
-            # Логируем сырой ответ для отладки
-            logger.debug(
-                f"📥 Сырой ответ от Flowise для '{article.get('title', '')[:50]}...': {result_text[:500]}..."
+            # Создаем LLM модель DeepSeek через OpenAI-совместимый API
+            llm = ChatOpenAI(
+                model="deepseek-chat",
+                api_key=deepseek_api_key,
+                base_url="https://api.deepseek.com/v1",
+                temperature=0.3,
             )
 
-            import json
-            import re
+            # Используем промпты по умолчанию, если не переданы
+            if system_prompt is None:
+                system_prompt = prompts.FILTER_SYSTEM_PROMPT
 
-            # Очищаем ответ от markdown блоков
-            clean_text = result_text
-            if "```json" in result_text:
-                # Извлекаем JSON из markdown блока
-                json_match = re.search(
-                    r"```json\s*(\{.*?\})\s*```", result_text, re.DOTALL
-                )
-                if json_match:
-                    clean_text = json_match.group(1)
-                    logger.debug(
-                        f"📄 Извлечен JSON из markdown блока: {clean_text[:200]}..."
-                    )
-            else:
-                # Пытаемся найти JSON в тексте без markdown блоков
-                json_match = re.search(r"\{.*\}", result_text, re.DOTALL)
-                if json_match:
-                    clean_text = json_match.group(0)
-                    logger.debug(f"📄 Найден JSON в тексте: {clean_text[:200]}...")
+            if user_prompt is None:
+                user_prompt = prompts.FILTER_USER_PROMPT
 
-            try:
-                result = json.loads(clean_text)
+            # Создаем prompt template
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("user", user_prompt)
+            ])
 
-                # Новый формат ответа
-                return {
-                    "is_relevant": result.get("is_relevant", False),
-                    "relevance_reason": result.get(
-                        "relevance_reason", "Нет объяснения"
-                    ),
-                    "interest_score": result.get("interest_score", 0),
-                    "interest_reason": result.get("interest_reason", "Нет объяснения"),
-                    "content_type": result.get("content_type", "Неизвестно"),
-                    "summary": result.get("summary", ""),
-                    "title_ru": result.get("title_ru", ""),
-                    "url": result.get("url", article.get("url", "")),
-                }
-            except json.JSONDecodeError as e:
-                logger.warning(
-                    f"❌ Не удалось парсить JSON ответ для '{article.get('title', '')[:50]}...': {e}"
-                )
-                logger.warning(f"📄 Исходный текст: {result_text[:1000]}...")
-                logger.warning(f"🧹 Очищенный текст: {clean_text[:1000]}...")
-                return {
-                    "is_relevant": False,
-                    "relevance_reason": f"Ошибка парсинга JSON: {str(e)[:100]}",
-                    "interest_score": 0,
-                    "interest_reason": "Ошибка парсинга JSON ответа",
-                    "content_type": "Ошибка",
-                    "summary": "",
-                    "title_ru": "",
-                    "url": article.get("url", ""),
-                }
+            # Создаем цепочку
+            chain = prompt | llm | self.parser
+
+            # Вызываем цепочку
+            result = chain.invoke({
+                "title": article.get('title', ''),
+                "summary": article.get('summary', ''),
+                "url": article.get('url', ''),
+                "format_instructions": self.parser.get_format_instructions()
+            })
+
+            # Логируем результат для отладки
+            logger.debug(
+                f"📥 Ответ от DeepSeek для '{article.get('title', '')[:50]}...': релевантность={result.get('is_relevant')}, оценка={result.get('interest_score')}/10"
+            )
+
+            return result
 
         except Exception as e:
-            logger.error(f"Ошибка при проверке релевантности через Flowise: {e}")
+            logger.error(f"Ошибка при проверке релевантности через DeepSeek: {e}")
             return {
                 "is_relevant": False,
-                "relevance_reason": "Ошибка API",
+                "relevance_reason": f"Ошибка API: {str(e)[:100]}",
                 "interest_score": 0,
                 "interest_reason": "Ошибка API",
                 "content_type": "Ошибка",
@@ -98,14 +100,30 @@ class FilterService:
                 "url": article.get("url", ""),
             }
 
-    def filter_news_with_flowise(
-        self, articles: List[Dict[str, str]], flow_id: str, flowise_host: str
+    def filter_news(
+        self,
+        articles: List[Dict[str, str]],
+        deepseek_api_key: str,
+        system_prompt: str = None,
+        user_prompt: str = None
     ) -> List[Dict[str, str]]:
+        """
+        Фильтрует статьи через DeepSeek API.
+
+        Args:
+            articles: Список статей для фильтрации
+            deepseek_api_key: API ключ DeepSeek
+            system_prompt: Системный промпт (опционально)
+            user_prompt: Пользовательский промпт (опционально)
+
+        Returns:
+            List[Dict]: Отфильтрованные статьи
+        """
         filtered_articles = []
 
         for article in articles:
-            relevance_check = self.check_relevance_with_flowise(
-                article, flow_id, flowise_host
+            relevance_check = self.check_relevance_with_deepseek(
+                article, deepseek_api_key, system_prompt, user_prompt
             )
 
             # Добавляем информацию о фильтрации к статье
@@ -143,15 +161,20 @@ class FilterService:
         return filtered_articles
 
     def get_all_articles_with_filter_results(
-        self, articles: List[Dict[str, str]], flow_id: str, flowise_host: str
+        self,
+        articles: List[Dict[str, str]],
+        deepseek_api_key: str,
+        system_prompt: str = None,
+        user_prompt: str = None
     ) -> List[Dict[str, str]]:
         """
         Возвращает все статьи с результатами фильтрации (включая отклоненные).
 
         Args:
             articles: Исходные статьи
-            flow_id: ID потока Flowise
-            flowise_host: Хост Flowise
+            deepseek_api_key: API ключ DeepSeek
+            system_prompt: Системный промпт (опционально)
+            user_prompt: Пользовательский промпт (опционально)
 
         Returns:
             List[Dict]: Все статьи с информацией о фильтрации
@@ -159,8 +182,8 @@ class FilterService:
         articles_with_results = []
 
         for article in articles:
-            relevance_check = self.check_relevance_with_flowise(
-                article, flow_id, flowise_host
+            relevance_check = self.check_relevance_with_deepseek(
+                article, deepseek_api_key, system_prompt, user_prompt
             )
 
             article_with_meta = article.copy()

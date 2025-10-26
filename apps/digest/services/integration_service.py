@@ -9,10 +9,10 @@ from loguru import logger
 
 from ..models import (
     DigestRun,
-    NewsSource,
+    ArticleSource,
     Article,
     GeneratedPost,
-    Configuration,
+    Project,
     Keyword,
 )
 from .scout_service import ScoutService
@@ -79,26 +79,25 @@ class IntegrationService:
         logger.info(f"Обновлена статистика запуска {digest_run.id}: {status}")
 
     def get_or_create_news_source(
-        self, source_name: str, source_url: str, source_type: str
-    ) -> NewsSource:
+        self, source_name: str, source_url: str
+    ) -> ArticleSource:
         """
-        Получает или создает источник новостей.
+        Получает или создает RSS источник новостей.
 
         Args:
             source_name: Название источника
             source_url: URL источника
-            source_type: Тип источника (rss, google, manual)
 
         Returns:
-            NewsSource: Объект источника новостей
+            ArticleSource: Объект источника новостей
         """
-        source, created = NewsSource.objects.get_or_create(
+        source, created = ArticleSource.objects.get_or_create(
             name=source_name,
-            defaults={"url": source_url, "source_type": source_type, "is_active": True},
+            defaults={"url": source_url, "is_active": True},
         )
 
         if created:
-            logger.info(f"Создан новый источник новостей: {source_name}")
+            logger.info(f"Создан новый RSS источник: {source_name}")
         else:
             logger.debug(f"Используется существующий источник: {source_name}")
 
@@ -108,7 +107,7 @@ class IntegrationService:
         self,
         digest_run: DigestRun,
         articles: List[Dict[str, str]],
-        source: Optional[NewsSource] = None,
+        source: Optional[ArticleSource] = None,
     ) -> List[Article]:
         """
         Сохраняет собранные статьи в базу данных.
@@ -133,11 +132,10 @@ class IntegrationService:
                         article_source = self.get_or_create_news_source(
                             f"Google Search: {source_info.split(':')[-1].strip()}",
                             "",
-                            "google",
                         )
                     elif "RSS" in source_info:
                         article_source = self.get_or_create_news_source(
-                            source_info, "", "rss"
+                            source_info, ""
                         )
 
                 # Создаем статью
@@ -213,18 +211,18 @@ class IntegrationService:
         logger.info(f"Сохранено {len(saved_posts)} постов в базу данных")
         return saved_posts
 
-    def get_active_configuration(self) -> Optional[Configuration]:
+    def get_active_configuration(self) -> Optional[Project]:
         """
         Получает активную конфигурацию пайплайна.
 
         Returns:
-            Configuration: Активная конфигурация или None
+            Project: Активная конфигурация или None
         """
         try:
-            config = Configuration.objects.get(is_active=True)
+            config = Project.objects.get(is_active=True)
             logger.info(f"Используется конфигурация: {config.name}")
             return config
-        except Configuration.DoesNotExist:
+        except Project.DoesNotExist:
             logger.warning("Активная конфигурация не найдена")
             return None
         except Exception as e:

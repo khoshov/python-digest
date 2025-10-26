@@ -1,7 +1,9 @@
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
-from encrypted_model_fields.fields import EncryptedCharField
+from typing import List
+
+from . import prompts
 
 
 class DigestRun(models.Model):
@@ -89,32 +91,53 @@ class DigestRun(models.Model):
             return (self.total_posts_created / self.total_articles_collected) * 100
         return 0
 
+    def filter_rate(self):
+        """Возвращает процент статей, прошедших фильтр."""
+        if self.total_articles_collected > 0:
+            return (self.total_articles_filtered / self.total_articles_collected) * 100
+        return 0
 
-class NewsSource(models.Model):
+    @property
+    def is_running(self):
+        """Проверяет, выполняется ли пайплайн в данный момент."""
+        return self.status == "running"
+
+    @property
+    def is_completed(self):
+        """Проверяет, успешно ли завершен пайплайн."""
+        return self.status == "completed"
+
+    @property
+    def is_failed(self):
+        """Проверяет, завершился ли пайплайн с ошибкой."""
+        return self.status == "failed"
+
+
+class ArticleSource(models.Model):
     """
-    Модель для хранения источников новостей.
+    Модель для хранения RSS источников новостей.
+    Каждый источник представляет собой RSS ленту для сбора статей.
     """
 
-    SOURCE_TYPE_CHOICES = [
-        ("rss", "RSS лента"),
-        ("google", "Google Search"),
-        ("manual", "Ручной ввод"),
-    ]
-
+    project = models.ForeignKey(
+        'Project',
+        on_delete=models.CASCADE,
+        related_name='sources',
+        verbose_name='Проект',
+        null=True,  # Временно для миграции
+        blank=True,
+    )
     name = models.CharField(
-        "Название источника",
+        "Название RSS источника",
         max_length=200,
+        help_text="Название RSS ленты (например, 'Python.org Blog')",
     )
     url = models.URLField(
-        "URL источника",
+        "URL RSS ленты",
         max_length=500,
         blank=True,
         null=True,
-    )
-    source_type = models.CharField(
-        "Тип источника",
-        max_length=20,
-        choices=SOURCE_TYPE_CHOICES,
+        help_text="Полный URL RSS фида (например, https://www.python.org/feeds/python.rss/)",
     )
     is_active = models.BooleanField(
         "Активен",
@@ -142,12 +165,16 @@ class NewsSource(models.Model):
     )
 
     class Meta:
-        verbose_name = "Источник новостей"
-        verbose_name_plural = "Источники новостей"
+        verbose_name = "RSS источник"
+        verbose_name_plural = "RSS источники"
         ordering = ["priority", "name"]
+        indexes = [
+            models.Index(fields=["project", "is_active", "priority"]),
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.get_source_type_display()})"
+        project_name = self.project.name if self.project else "Без проекта"
+        return f"{self.name} - {project_name}"
 
 
 class Article(models.Model):
@@ -172,7 +199,7 @@ class Article(models.Model):
         verbose_name="Запуск дайджеста",
     )
     source = models.ForeignKey(
-        NewsSource,
+        ArticleSource,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -229,10 +256,27 @@ class Article(models.Model):
             models.Index(fields=["digest_run", "is_relevant"]),
             models.Index(fields=["interest_score"]),
             models.Index(fields=["collected_at"]),
+            models.Index(fields=["source", "collected_at"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["digest_run", "url"],
+                name="unique_article_per_digest"
+            ),
         ]
 
     def __str__(self):
         return f"{self.title[:50]}... ({self.interest_score}/10)"
+
+    @property
+    def is_high_quality(self):
+        """Определяет, является ли статья высококачественной (оценка >= 7)."""
+        return self.interest_score >= 7.0
+
+    @property
+    def short_title(self):
+        """Возвращает укороченный заголовок для отображения."""
+        return self.title[:100] if len(self.title) > 100 else self.title
 
 
 class GeneratedPost(models.Model):
@@ -300,8 +344,20 @@ class GeneratedPost(models.Model):
     def __str__(self):
         return f"Пост для {self.article.title[:30]}... ({self.get_platform_display()})"
 
+    @property
+    def has_image(self):
+        """Проверяет, есть ли у поста изображение."""
+        return bool(self.image_path)
 
-class Configuration(models.Model):
+    @property
+    def days_since_publication(self):
+        """Возвращает количество дней с момента публикации."""
+        if self.published_at:
+            return (timezone.now() - self.published_at).days
+        return None
+
+
+class Project(models.Model):
     """
     Модель для хранения конфигурации пайплайна.
     """
@@ -311,57 +367,53 @@ class Configuration(models.Model):
         max_length=100,
         unique=True,
     )
-    flowise_host = models.URLField(
-        "Flowise Host",
-        max_length=500,
+    filter_system_prompt = models.TextField(
+        "System prompt для фильтра",
+        default=prompts.FILTER_SYSTEM_PROMPT,
+        help_text="Системный промпт для агента фильтрации статей",
     )
-    flowise_filter_id = models.CharField(
-        "Flowise Filter ID",
-        max_length=100,
+    filter_user_prompt = models.TextField(
+        "User prompt для фильтра",
+        default=prompts.FILTER_USER_PROMPT,
+        help_text="Промпт для пользователя в агенте фильтрации. Доступные переменные: {title}, {summary}, {url}, {format_instructions}",
     )
-    flowise_copywriter_id = models.CharField(
-        "Flowise Copywriter ID",
-        max_length=100,
+    copywriter_system_prompt = models.TextField(
+        "System prompt для копирайтера",
+        default=prompts.COPYWRITER_SYSTEM_PROMPT,
+        help_text="Системный промпт для агента создания постов",
     )
-    google_api_key = models.CharField(
-        "Google API Key",
-        max_length=200,
-        blank=True,
-        null=True,
-    )
-    google_cse_id = models.CharField(
-        "Google CSE ID",
-        max_length=100,
-        blank=True,
-        null=True,
-    )
-    openai_api_key = EncryptedCharField(
-        "OpenAI API Key",
-        max_length=200,
-        blank=True,
-        null=True,
+    copywriter_user_prompt = models.TextField(
+        "User prompt для копирайтера",
+        default=prompts.COPYWRITER_USER_PROMPT,
+        help_text="Промпт для пользователя в агенте копирайтинга. Доступные переменные: {title}, {summary}, {url}, {format_instructions}",
     )
     rss_hours_period = models.IntegerField(
         "Период RSS (часы)",
         default=168,
-        help_text="За какой период собирать RSS (по умолчанию 168 = 7 дней)",
+        validators=[MinValueValidator(1), MaxValueValidator(720)],
+        help_text="За какой период собирать RSS (по умолчанию 168 = 7 дней, максимум 30 дней)",
     )
     max_articles_per_source = models.IntegerField(
         "Максимум статей с источника",
         default=20,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text="Лимит статей с одного источника за запуск",
     )
     max_final_posts = models.IntegerField(
         "Максимум финальных постов",
         default=8,
+        validators=[MinValueValidator(1), MaxValueValidator(50)],
         help_text="Сколько ТОП статей выбирать для публикации",
     )
     enable_google_news = models.BooleanField(
-        "Включить Google News",
+        "Включить Google Custom Search",
         default=False,
+        help_text="Поиск статей через Google CSE по ключевым словам (настраиваются ниже)",
     )
     enable_rss_news = models.BooleanField(
-        "Включить RSS",
+        "Включить RSS сбор",
         default=True,
+        help_text="Сбор статей из RSS лент (источники настраиваются ниже)",
     )
     generate_images = models.BooleanField(
         "Генерировать изображения",
@@ -370,12 +422,6 @@ class Configuration(models.Model):
     enable_email_sending = models.BooleanField(
         "Включить отправку email",
         default=False,
-    )
-    email_recipients = models.TextField(
-        "Получатели email",
-        blank=True,
-        null=True,
-        help_text="Email адреса через запятую",
     )
     is_active = models.BooleanField(
         "Активная конфигурация",
@@ -391,12 +437,13 @@ class Configuration(models.Model):
     )
 
     class Meta:
-        verbose_name = "Конфигурация"
-        verbose_name_plural = "Конфигурации"
+        verbose_name = "Проект"
+        verbose_name_plural = "Проекты"
         ordering = ["-is_active", "name"]
+        db_table = "digest_configuration"  # Сохраняем старое имя таблицы
 
     def __str__(self):
-        status = "✅ Активная" if self.is_active else "❌ Неактивная"
+        status = "✅ Активный" if self.is_active else "❌ Неактивный"
         return f"{self.name} ({status})"
 
     def save(self, *args, **kwargs):
@@ -405,19 +452,60 @@ class Configuration(models.Model):
         """
         if self.is_active:
             # Деактивируем все другие конфигурации
-            Configuration.objects.filter(is_active=True).update(is_active=False)
+            Project.objects.filter(is_active=True).update(is_active=False)
         super().save(*args, **kwargs)
+
+    @classmethod
+    def get_active(cls):
+        """
+        Возвращает активный проект.
+
+        Returns:
+            Project: Активный проект или None
+        """
+        return cls.objects.filter(is_active=True).first()
+
+    def get_rss_sources(self):
+        """
+        Возвращает активные RSS источники для этого проекта.
+
+        Returns:
+            QuerySet: Активные RSS источники
+        """
+        return self.sources.filter(is_active=True).order_by('priority')
+
+    def get_active_keywords(self):
+        """
+        Возвращает активные ключевые слова для этого проекта.
+
+        Returns:
+            List[str]: Список активных ключевых слов
+        """
+        return list(
+            self.keywords.filter(is_active=True)
+            .order_by('priority')
+            .values_list('keyword', flat=True)
+        )
 
 
 class Keyword(models.Model):
     """
-    Модель для хранения ключевых слов для поиска.
+    Модель для хранения ключевых слов для Google Custom Search Engine (CSE).
+    Используются для поиска статей через Google Search API.
     """
 
+    project = models.ForeignKey(
+        'Project',
+        on_delete=models.CASCADE,
+        related_name='keywords',
+        verbose_name='Проект',
+        null=True,  # Временно для миграции
+        blank=True,
+    )
     keyword = models.CharField(
-        "Ключевое слово",
+        "Ключевое слово (для Google CSE)",
         max_length=200,
-        unique=True,
+        help_text="Ключевое слово для поиска через Google Custom Search",
     )
     is_active = models.BooleanField(
         "Активно",
@@ -434,9 +522,14 @@ class Keyword(models.Model):
     )
 
     class Meta:
-        verbose_name = "Ключевое слово"
-        verbose_name_plural = "Ключевые слова"
+        verbose_name = "Ключевое слово (Google CSE)"
+        verbose_name_plural = "Ключевые слова (Google CSE)"
         ordering = ["priority", "keyword"]
+        unique_together = [['project', 'keyword']]  # Уникальность в рамках проекта
+        indexes = [
+            models.Index(fields=["project", "is_active", "priority"]),
+        ]
 
     def __str__(self):
-        return self.keyword
+        project_name = self.project.name if self.project else "Без проекта"
+        return f"{self.keyword} ({project_name})"

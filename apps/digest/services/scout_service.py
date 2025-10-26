@@ -7,8 +7,9 @@ from typing import List, Dict, Optional
 import ssl
 import urllib3
 
+from newspaper import Article as NewspaperArticle
 
-from newspaper import Article  # не увидел такого файла в репозитории
+from ..models import Article as ArticleModel
 from logger.logger import setup_logger
 
 logger = setup_logger(module_name=__name__)
@@ -238,7 +239,7 @@ class ScoutService:
         """
         try:
             # Создаем объект статьи с указанием языка
-            article = Article(url, language="ru")
+            article = NewspaperArticle(url, language="ru")
 
             # Настраиваем заголовки для лучшей совместимости
             article.config.browser_user_agent = (

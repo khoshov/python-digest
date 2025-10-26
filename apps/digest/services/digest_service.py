@@ -3,7 +3,7 @@
 
 Последовательность:
 1. Scout - сбор новостей из различных источников
-2. Filter - фильтрация релевантных новостей через Flowise
+2. Filter - фильтрация релевантных новостей через DeepSeek API
 3. Copywriter - создание постов из отфильтрованных новостей
 
 Обеспечивает логирование и отслеживание процесса на каждом этапе.
@@ -98,24 +98,30 @@ class NewsPipeline:
 
     def __init__(
         self,
-        flowise_host: str,
-        flowise_filter_id: str,
-        flowise_copywriter_id: str,
+        deepseek_api_key: str,
         image_config: Optional[Dict] = None,
+        filter_system_prompt: Optional[str] = None,
+        filter_user_prompt: Optional[str] = None,
+        copywriter_system_prompt: Optional[str] = None,
+        copywriter_user_prompt: Optional[str] = None,
     ):
         """
-        Инициализация pipeline с настройками Flowise и генерации изображений.
+        Инициализация pipeline с настройками DeepSeek API и генерации изображений.
 
         Args:
-            flowise_host: Хост Flowise API
-            flowise_filter_id: ID потока для фильтрации
-            flowise_copywriter_id: ID потока для копирайтинга
+            deepseek_api_key: API ключ DeepSeek
             image_config: Конфигурация для генерации изображений
+            filter_system_prompt: Системный промпт для фильтра (опционально)
+            filter_user_prompt: Пользовательский промпт для фильтра (опционально)
+            copywriter_system_prompt: Системный промпт для копирайтера (опционально)
+            copywriter_user_prompt: Пользовательский промпт для копирайтера (опционально)
         """
-        self.flowise_host = flowise_host
-        self.flowise_filter_id = flowise_filter_id
-        self.flowise_copywriter_id = flowise_copywriter_id
+        self.deepseek_api_key = deepseek_api_key
         self.image_config = image_config or {}
+        self.filter_system_prompt = filter_system_prompt
+        self.filter_user_prompt = filter_user_prompt
+        self.copywriter_system_prompt = copywriter_system_prompt
+        self.copywriter_user_prompt = copywriter_user_prompt
         self.integration_service = IntegrationService()
 
     def run_scout_stage(
@@ -175,10 +181,11 @@ class NewsPipeline:
             logger.warning("⚠️ Нет статей для фильтрации")
             return []
 
-        filtered_articles = filter_service.filter_news_with_flowise(
+        filtered_articles = filter_service.filter_news(
             articles=articles,
-            flow_id=self.flowise_filter_id,
-            flowise_host=self.flowise_host,
+            deepseek_api_key=self.deepseek_api_key,
+            system_prompt=self.filter_system_prompt,
+            user_prompt=self.filter_user_prompt,
         )
 
         logger.info(
@@ -221,10 +228,11 @@ class NewsPipeline:
             )
 
             try:
-                copywriter_result = copywriter_service.call_flowise_copywriter(
-                    flow_id=self.flowise_copywriter_id,
+                copywriter_result = copywriter_service.call_deepseek_copywriter(
                     article=article,
-                    flowise_host=self.flowise_host,
+                    deepseek_api_key=self.deepseek_api_key,
+                    system_prompt=self.copywriter_system_prompt,
+                    user_prompt=self.copywriter_user_prompt,
                 )
 
                 # Добавляем созданный пост и идею изображения к статье
@@ -432,9 +440,7 @@ class NewsPipeline:
 
 def run_news_pipeline(
     keywords: List[str],
-    flowise_host: str,
-    flowise_filter_id: str,
-    flowise_copywriter_id: str,
+    deepseek_api_key: str,
     google_api: Optional[str] = None,
     google_cse: Optional[str] = None,
     rss_feeds: Optional[List[str]] = None,
@@ -449,9 +455,7 @@ def run_news_pipeline(
 
     Args:
         keywords: Ключевые слова для поиска
-        flowise_host: Хост Flowise API
-        flowise_filter_id: ID потока для фильтрации
-        flowise_copywriter_id: ID потока для копирайтинга
+        deepseek_api_key: API ключ DeepSeek
         google_api: Google API ключ
         google_cse: Google Custom Search Engine ID
         rss_feeds: Список RSS лент
@@ -468,9 +472,7 @@ def run_news_pipeline(
     digest_run = integration_service.create_digest_run()
 
     pipeline = NewsPipeline(
-        flowise_host=flowise_host,
-        flowise_filter_id=flowise_filter_id,
-        flowise_copywriter_id=flowise_copywriter_id,
+        deepseek_api_key=deepseek_api_key,
         image_config=image_config,
     )
 
@@ -509,9 +511,7 @@ def run_news_pipeline(
 
 def run_news_pipeline_with_tracking(
     keywords: List[str],
-    flowise_host: str,
-    flowise_filter_id: str,
-    flowise_copywriter_id: str,
+    deepseek_api_key: str,
     google_api: Optional[str] = None,
     google_cse: Optional[str] = None,
     rss_feeds: Optional[List[str]] = None,
@@ -526,9 +526,7 @@ def run_news_pipeline_with_tracking(
 
     Args:
         keywords: Ключевые слова для поиска
-        flowise_host: Хост Flowise API
-        flowise_filter_id: ID потока для фильтрации
-        flowise_copywriter_id: ID потока для копирайтинга
+        deepseek_api_key: API ключ DeepSeek
         google_api: Google API ключ
         google_cse: Google Custom Search Engine ID
         rss_feeds: Список RSS лент
@@ -549,9 +547,7 @@ def run_news_pipeline_with_tracking(
     digest_run = integration_service.create_digest_run()
 
     pipeline = NewsPipeline(
-        flowise_host=flowise_host,
-        flowise_filter_id=flowise_filter_id,
-        flowise_copywriter_id=flowise_copywriter_id,
+        deepseek_api_key=deepseek_api_key,
         image_config=image_config,
     )
 
@@ -579,7 +575,7 @@ def run_news_pipeline_with_tracking(
 
     # Получаем все статьи с результатами фильтрации (включая отклоненные)
     all_news_with_filter = filter_service.get_all_articles_with_filter_results(
-        all_news, pipeline.flowise_filter_id, pipeline.flowise_host
+        all_news, pipeline.deepseek_api_key
     )
 
     # Этап 2: Filter - фильтрация релевантных
